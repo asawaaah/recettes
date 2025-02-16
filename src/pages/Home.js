@@ -12,12 +12,26 @@ function Home() {
       />
       <Box p={8}>
         <VStack spacing={6} align="center">
-          <Heading size="2xl">Bienvenue</Heading>
-          <Text fontSize="xl">Voici notre thème personnalisé</Text>
+          <Heading size="2xl" color="brand.text">Bienvenue</Heading>
+          <Text fontSize="xl" color="brand.text">Voici notre thème personnalisé</Text>
           
           <HStack spacing={4}>
-            <Button>Bouton Primary</Button>
-            <Button variant="outline">Bouton Secondary</Button>
+            <Button 
+              colorScheme="brand"
+              bg="brand.primary"
+              color="white"
+              _hover={{ bg: 'brand.accent' }}
+            >
+              Bouton Primary
+            </Button>
+            <Button 
+              variant="outline"
+              borderColor="brand.secondary"
+              color="brand.text"
+              _hover={{ bg: 'brand.accent', color: 'white' }}
+            >
+              Bouton Secondary
+            </Button>
           </HStack>
 
           <Box p={4} bg="brand.accent" borderRadius="md">

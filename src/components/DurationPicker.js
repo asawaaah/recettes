@@ -14,178 +14,126 @@ import {
   HStack,
   useDisclosure,
 } from '@chakra-ui/react';
+import '../styles/components/buttons.css';
 
 const DurationPicker = ({ label, value, onChange, isRequired = false }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [inputValue, setInputValue] = useState('');
   const [displayValue, setDisplayValue] = useState({ hours: '00', minutes: '00' });
-  const [activeField, setActiveField] = useState('minutes'); // 'minutes' ou 'hours'
+  const [activeField, setActiveField] = useState('hours');
 
-  // Convertit les minutes en format lisible pour le bouton
-  const formatDuration = (minutes) => {
-    if (!minutes) return '0 min';
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes 
-      ? `${hours}h ${remainingMinutes}min`
-      : `${hours}h`;
-  };
+  useEffect(() => {
+    const hours = Math.floor(value / 60);
+    const minutes = value % 60;
+    setDisplayValue({
+      hours: hours.toString().padStart(2, '0'),
+      minutes: minutes.toString().padStart(2, '0'),
+    });
+  }, [value]);
 
-  // Met à jour l'affichage digital
-  const updateDisplayValue = (val) => {
-    const numVal = parseInt(val) || 0;
-    
-    if (activeField === 'minutes') {
-      if (numVal > 59) return; // Limite à 59 minutes
-      setDisplayValue(prev => ({
-        ...prev,
-        minutes: numVal.toString().padStart(2, '0')
-      }));
-    } else {
-      if (numVal > 24) return; // Limite à 24 heures au lieu de 12
-      setDisplayValue(prev => ({
-        ...prev,
-        hours: numVal.toString().padStart(2, '0')
-      }));
-    }
-  };
-
-  // Gère la saisie des chiffres
   const handleInputChange = (e) => {
-    const val = e.target.value.replace(/\D/g, ''); // Ne garde que les chiffres
-    if (val.length > 2) return; // Limite à 2 chiffres
-    setInputValue(val);
-    updateDisplayValue(val);
-
-    // Convertit en minutes pour la valeur réelle
-    const numVal = parseInt(val) || 0;
-    if (activeField === 'minutes') {
-      if (numVal <= 59) {
-        onChange(parseInt(displayValue.hours) * 60 + numVal);
-      }
-    } else {
-      if (numVal <= 24) { // Limite à 24 heures au lieu de 12
-        onChange(numVal * 60 + parseInt(displayValue.minutes));
-      }
+    const val = e.target.value.replace(/\D/g, '');
+    if (val.length <= 2) {
+      setInputValue(val);
     }
   };
 
-  // Réinitialise l'input et ferme la modale
-  const handleClose = () => {
-    setInputValue('');
-    setActiveField('minutes');
-    onClose();
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && inputValue) {
+      handleConfirm();
+    }
   };
 
-  // Met à jour l'affichage initial à l'ouverture
-  useEffect(() => {
-    if (isOpen && value) {
-      const hours = Math.floor(value / 60);
-      const minutes = value % 60;
-      setDisplayValue({
-        hours: hours.toString().padStart(2, '0'),
-        minutes: minutes.toString().padStart(2, '0')
-      });
+  const handleConfirm = () => {
+    if (inputValue) {
+      const numValue = parseInt(inputValue, 10);
+      const isValid = activeField === 'hours' ? numValue <= 24 : numValue <= 59;
+      
+      if (isValid) {
+        const newDisplayValue = {
+          ...displayValue,
+          [activeField]: inputValue.padStart(2, '0')
+        };
+        setDisplayValue(newDisplayValue);
+        
+        const totalMinutes = 
+          parseInt(newDisplayValue.hours, 10) * 60 + 
+          parseInt(newDisplayValue.minutes, 10);
+        
+        onChange(totalMinutes);
+      }
     }
-  }, [isOpen, value]);
-
-  // Reset input quand on change de champ
-  useEffect(() => {
     setInputValue('');
-  }, [activeField]);
+  };
+
+  const switchField = () => {
+    setActiveField(activeField === 'hours' ? 'minutes' : 'hours');
+    setInputValue('');
+  };
 
   return (
     <FormControl isRequired={isRequired}>
-      <FormLabel>{label}</FormLabel>
+      <FormLabel color="brand.text">{label}</FormLabel>
       <Button
         onClick={onOpen}
         variant="outline"
-        w="full"
-        justifyContent="flex-start"
-        h="40px"
+        width="full"
+        borderColor="brand.secondary"
+        color="brand.text"
+        _hover={{ borderColor: 'brand.primary' }}
+        className="custom-button-animation"
       >
-        {formatDuration(value)}
+        {displayValue.hours}h{displayValue.minutes}
       </Button>
 
-      <Modal isOpen={isOpen} onClose={handleClose} isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader textAlign="center">Durée</ModalHeader>
+          <ModalHeader color="brand.text">
+            Sélectionner la durée
+          </ModalHeader>
+
           <ModalBody pb={6}>
-            <VStack spacing={6}>
-              <HStack 
-                spacing={2} 
-                fontSize="4xl" 
-                fontFamily="mono"
-                bg="gray.100"
-                p={4}
-                borderRadius="md"
-                w="full"
-                justifyContent="center"
-                position="relative"
-              >
-                <Input
-                  type="tel"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  size="lg"
-                  textAlign="center"
-                  fontSize="4xl"
-                  fontFamily="mono"
-                  border="none"
-                  p={0}
-                  h="auto"
-                  bg="transparent"
-                  position="absolute"
-                  w="full"
-                  autoFocus
-                  pattern="\d*"
-                  inputMode="numeric"
-                  sx={{
-                    caretColor: 'brand.accent',
-                    opacity: 0,
-                    pointerEvents: 'none',
-                    '&:focus': {
-                      boxShadow: 'none'
-                    }
-                  }}
-                />
-                <Text 
-                  onClick={() => {
-                    setActiveField('hours');
-                    const input = document.querySelector('input[type="tel"]');
-                    if (input) input.focus();
-                  }}
+            <VStack spacing={4}>
+              <Input
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={`Entrez les ${activeField === 'hours' ? 'heures' : 'minutes'}`}
+                autoFocus
+                type="tel"
+                maxLength={2}
+              />
+
+              <HStack spacing={2} fontSize="2xl" fontWeight="bold">
+                <Text
                   cursor="pointer"
-                  color={activeField === 'hours' ? 'brand.secondary' : 'black'}
+                  onClick={() => setActiveField('hours')}
+                  color={activeField === 'hours' ? 'brand.primary' : 'gray.400'}
                   borderBottom={activeField === 'hours' ? '2px solid' : 'none'}
                   borderColor="brand.accent"
-                  zIndex="1"
                 >
                   {displayValue.hours}
                 </Text>
                 <Text>:</Text>
-                <Text 
-                  onClick={() => {
-                    setActiveField('minutes');
-                    const input = document.querySelector('input[type="tel"]');
-                    if (input) input.focus();
-                  }}
+                <Text
                   cursor="pointer"
-                  color={activeField === 'minutes' ? 'brand.secondary' : 'black'}
+                  onClick={() => setActiveField('minutes')}
+                  color={activeField === 'minutes' ? 'brand.primary' : 'gray.400'}
                   borderBottom={activeField === 'minutes' ? '2px solid' : 'none'}
                   borderColor="brand.accent"
-                  zIndex="1"
                 >
                   {displayValue.minutes}
                 </Text>
               </HStack>
-              <Text fontSize="sm" color="gray.500">
-                {activeField === 'minutes' 
-                  ? 'Entrez les minutes (0-59)'
-                  : 'Entrez les heures (0-24)'}
-              </Text>
+              
+              <Button
+                onClick={switchField}
+                variant="ghost"
+                color="brand.primary"
+              >
+                Passer aux {activeField === 'hours' ? 'minutes' : 'heures'}
+              </Button>
             </VStack>
           </ModalBody>
         </ModalContent>

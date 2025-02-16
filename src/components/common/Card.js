@@ -1,17 +1,22 @@
 import React from 'react';
 import { Box, Image, Text, VStack, Heading, Badge } from '@chakra-ui/react';
+import '../../styles/components/buttons.css';
 
-const Card = ({ title, description, image, badge }) => {
+const Card = ({ title, description, image, badge, onClick }) => {
   return (
     <Box
-      maxW="sm"
+      as="article"
       borderWidth="1px"
       borderRadius="lg"
       overflow="hidden"
       bg="white"
-      boxShadow="md"
       transition="all 0.3s"
-      _hover={{ boxShadow: 'xl', transform: 'translateY(-2px)' }}
+      _hover={{ 
+        transform: 'translateY(-2px)',
+        boxShadow: 'lg'
+      }}
+      onClick={onClick}
+      className={onClick ? 'custom-button-animation' : ''}
     >
       {image && (
         <Image
@@ -25,7 +30,7 @@ const Card = ({ title, description, image, badge }) => {
 
       <VStack p={5} align="start" spacing={3}>
         {badge && (
-          <Badge colorScheme="brand" bg="brand.accent" color="brand.text">
+          <Badge colorScheme="brand" variant="subtle">
             {badge}
           </Badge>
         )}

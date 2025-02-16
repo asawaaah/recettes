@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { ChakraProvider } from '@chakra-ui/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './context/AuthContext';
-import theme from './theme/index';
-import './index.css';
+import theme from './theme';
+import './styles/globals.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 

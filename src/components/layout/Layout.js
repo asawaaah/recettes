@@ -4,13 +4,14 @@ import NavBar from '../navigation/NavBar';
 
 const Layout = ({ children }) => {
   return (
-    <Box>
+    <Box as="main" minH="100vh" bg="brand.background">
       <NavBar />
       <Box 
-        maxWidth="1200px" 
-        mx="auto" 
-        px={4} 
-        pt="80px" // Pour compenser la navbar fixe
+        as="div"
+        pt="80px"
+        px={4}
+        maxW="1200px"
+        mx="auto"
       >
         {children}
       </Box>

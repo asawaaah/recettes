@@ -1,96 +1,144 @@
 import { extendTheme } from '@chakra-ui/react';
 
-const theme = extendTheme({
-  colors: {
-    brand: {
-      primary: '#D4A373',
-      primaryDark: '#8F6A47',
-      secondary: '#A78A7F',
-      background: '#FFF9F2',
-      text: '#5C4B43',
-      accent: '#E6B8A2',
-      success: '#8CAF88',
-      warning: '#D4A373',
-      error: '#C97A6D',
+// Définition des couleurs de base
+const colors = {
+  brand: {
+    primary: '#D4A373',
+    primaryDark: '#8F6A47',
+    secondary: '#A78A7F',
+    background: '#FFF9F2',
+    text: '#5C4B43',
+    accent: '#E6B8A2',
+    success: '#8CAF88',
+    warning: '#D4A373',
+    error: '#C97A6D',
+  }
+};
+
+// Styles globaux
+const styles = {
+  global: {
+    body: {
+      bg: 'brand.background',
+      color: 'brand.text',
+    }
+  }
+};
+
+// Configuration des composants
+const components = {
+  Button: {
+    baseStyle: {
+      fontWeight: 'semibold',
     },
-  },
-  styles: {
-    global: {
-      body: {
-        bg: 'brand.background',
-        color: 'brand.text',
+    variants: {
+      solid: {
+        bg: 'brand.primary',
+        color: 'white',
+        _hover: {
+          bg: 'brand.primaryDark',
+        },
+        _active: {
+          bg: 'brand.primaryDark',
+        }
       },
+      outline: {
+        borderColor: 'brand.primary',
+        color: 'brand.primary',
+        _hover: {
+          bg: 'brand.background'
+        }
+      }
     },
+    defaultProps: {
+      colorScheme: 'brand',
+      variant: 'solid',
+    }
   },
-  components: {
-    Button: {
-      baseStyle: {
-        fontWeight: 'bold',
-        borderRadius: 'md',
-      },
-      variants: {
-        solid: {
-          bg: 'brand.primary',
+  Alert: {
+    variants: {
+      success: {
+        container: {
+          bg: 'brand.success',
           color: 'white',
-          _hover: {
-            bg: 'brand.accent',
-          },
-        },
-        outline: {
-          border: '2px solid',
-          borderColor: 'brand.secondary',
-          color: 'brand.text',
-        },
+        }
       },
-    },
-    Heading: {
-      baseStyle: {
-        color: 'brand.text',
-      },
-    },
-    Card: {
-      baseStyle: {
+      error: {
         container: {
-          backgroundColor: 'white',
-          borderRadius: 'lg',
-          boxShadow: 'md',
-          transition: 'all 0.3s',
-          _hover: {
-            boxShadow: 'xl',
-            transform: 'translateY(-2px)',
-          },
-        },
+          bg: 'brand.error',
+          color: 'white',
+        }
       },
-    },
-    Toast: {
-      baseStyle: {
+      warning: {
         container: {
-          bg: 'white',
-          color: 'brand.text',
-        },
-      },
-      variants: {
-        success: {
-          container: {
-            bg: `whiten('brand.success', 30)`,
-            color: 'white',
-          },
-        },
-        error: {
-          container: {
-            bg: 'brand.error',
-            color: 'white',
-          },
-        },
-        warning: {
-          container: {
-            bg: 'brand.warning',
-            color: 'white',
-          },
-        },
-      },
-    },
+          bg: 'brand.warning',
+          color: 'white',
+        }
+      }
+    }
   },
+  Input: {
+    variants: {
+      outline: {
+        field: {
+          bg: 'white',
+          borderColor: 'brand.secondary',
+          _hover: {
+            borderColor: 'brand.primary',
+          },
+          _focus: {
+            borderColor: 'brand.primary',
+            boxShadow: '0 0 0 1px brand.primary',
+          }
+        }
+      }
+    },
+    defaultProps: {
+      variant: 'outline',
+    }
+  },
+  NumberInput: {
+    variants: {
+      outline: {
+        field: {
+          bg: 'white',
+          borderColor: 'brand.secondary',
+          _hover: {
+            borderColor: 'brand.primary',
+          },
+          _focus: {
+            borderColor: 'brand.primary',
+            boxShadow: '0 0 0 1px brand.primary',
+          }
+        }
+      }
+    },
+    defaultProps: {
+      variant: 'outline',
+    }
+  },
+  FormLabel: {
+    baseStyle: {
+      color: 'brand.text',
+      fontWeight: 'semibold',
+    }
+  }
+};
+
+// Configuration des breakpoints
+const breakpoints = {
+  sm: '320px',
+  md: '768px',
+  lg: '960px',
+  xl: '1200px',
+};
+
+// Export du thème
+const theme = extendTheme({
+  colors,
+  styles,
+  components,
+  breakpoints,
 });
 
 export default theme; 

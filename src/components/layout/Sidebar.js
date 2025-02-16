@@ -9,11 +9,13 @@ import {
   VStack,
   Button,
   Icon,
-  Text
+  Box,
+  useToast
 } from '@chakra-ui/react';
-import { Link as RouterLink } from 'react-router-dom';
-import { FaHome, FaBox, FaEnvelope, FaUserCircle, FaPlus } from 'react-icons/fa';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { FaHome, FaBox, FaEnvelope, FaUserCircle, FaPlus, FaSignOutAlt } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../config/supabaseClient';
 
 const MenuItem = ({ to, icon, children, onClick }) => (
   <Button
@@ -33,6 +35,30 @@ const MenuItem = ({ to, icon, children, onClick }) => (
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Déconnexion réussie",
+        status: "success",
+        duration: 3000,
+      });
+      navigate('/');
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Erreur lors de la déconnexion",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
+    }
+  };
 
   const handleClick = () => {
     onClose();
@@ -43,12 +69,10 @@ const Sidebar = ({ isOpen, onClose }) => {
       <DrawerOverlay />
       <DrawerContent bg="white">
         <DrawerCloseButton color="brand.text" />
-        <DrawerHeader borderBottomWidth="1px" color="brand.text">
-          Menu
-        </DrawerHeader>
+        <DrawerHeader color="brand.text">Menu</DrawerHeader>
 
-        <DrawerBody>
-          <VStack spacing={4} align="stretch" mt={4}>
+        <DrawerBody display="flex" flexDirection="column" p={4}>
+          <VStack spacing={4} align="stretch">
             <MenuItem to="/" icon={FaHome} onClick={handleClick}>
               Accueil
             </MenuItem>
@@ -61,26 +85,34 @@ const Sidebar = ({ isOpen, onClose }) => {
             <MenuItem to="/add-recipe" icon={FaPlus} onClick={handleClick}>
               Ajouter une recette
             </MenuItem>
+          </VStack>
 
-            {/* Spacer pour pousser le bouton de profil vers le bas */}
-            <VStack mt="auto" position="absolute" bottom={8} width="90%">
+          <Box mt="auto" mb={4} width="100%">
+            <VStack spacing={2}>
               <Button
                 as={RouterLink}
-                to={user ? "/profile" : "/auth"}
+                to={user ? "/profile" : "/login"}
                 variant="outline"
                 width="full"
                 leftIcon={<Icon as={FaUserCircle} />}
-                color="brand.text"
-                borderColor="brand.secondary"
-                _hover={{
-                  bg: 'brand.background'
-                }}
                 onClick={handleClick}
               >
                 {user ? 'Mon compte' : 'Connexion / Inscription'}
               </Button>
+
+              {user && (
+                <Button
+                  width="full"
+                  variant="solid"
+                  colorScheme="red"
+                  leftIcon={<Icon as={FaSignOutAlt} />}
+                  onClick={handleLogout}
+                >
+                  Se déconnecter
+                </Button>
+              )}
             </VStack>
-          </VStack>
+          </Box>
         </DrawerBody>
       </DrawerContent>
     </Drawer>

@@ -29,6 +29,7 @@ import { MdAdd, MdDelete } from 'react-icons/md';
 import { Editor } from '@tinymce/tinymce-react';
 import RichTextEditor from '../components/RichTextEditor';
 import DurationPicker from '../components/DurationPicker';
+import ImageUpload from '../components/ImageUpload';
 
 const AddRecipe = () => {
   const { user } = useAuth();
@@ -48,6 +49,7 @@ const AddRecipe = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState([]);
 
   // Gestion des instructions
   const addInstruction = () => {
@@ -126,32 +128,34 @@ const AddRecipe = () => {
       if (recipeError) throw recipeError;
 
       // Insertion des images
-      const imagePromises = recipe.images.map((img, index) => {
-        return supabase
-          .from('recipe_images')
-          .insert([{
-            recipe_id: recipeData.id,
-            image_url: img.url,
-            storage_path: img.path,
-            is_main: index === recipe.mainImageIndex
-          }]);
-      });
+      if (images.length > 0) {
+        const imagePromises = images.map(img => {
+          return supabase
+            .from('recipe_images')
+            .insert([{
+              recipe_id: recipeData.id,
+              image_url: img.url,
+              storage_path: img.path,
+              is_main: img.isMain
+            }]);
+        });
 
-      await Promise.all(imagePromises);
+        await Promise.all(imagePromises);
+      }
 
       toast({
-        title: "Recette ajoutée !",
+        title: "Recette ajoutée avec succès!",
         status: "success",
-        duration: 5000,
+        duration: 3000,
       });
-
-      navigate(`/recipes/${recipeData.id}`);
+      
+      navigate('/recipes');
     } catch (error) {
       toast({
         title: "Erreur",
         description: error.message,
         status: "error",
-        duration: 5000,
+        duration: 3000,
       });
     } finally {
       setLoading(false);
@@ -159,9 +163,9 @@ const AddRecipe = () => {
   };
 
   return (
-    <Box maxW="800px" mx="auto" p={8}>
-      <VStack spacing={8} as="form" onSubmit={handleSubmit}>
-        <Heading>Ajouter une nouvelle recette</Heading>
+    <Box p={8} maxW="800px" mx="auto" className="fade-in">
+      <VStack spacing={6} as="form" onSubmit={handleSubmit}>
+        <Heading color="brand.text">Ajouter une nouvelle recette</Heading>
 
         {/* Titre et sous-titre */}
         <FormControl isRequired>
@@ -169,6 +173,8 @@ const AddRecipe = () => {
           <Input
             value={recipe.title}
             onChange={(e) => setRecipe(prev => ({ ...prev, title: e.target.value }))}
+            bg="white"
+            _hover={{ borderColor: 'brand.primary' }}
           />
         </FormControl>
 
@@ -177,6 +183,8 @@ const AddRecipe = () => {
           <Input
             value={recipe.subtitle}
             onChange={(e) => setRecipe(prev => ({ ...prev, subtitle: e.target.value }))}
+            bg="white"
+            _hover={{ borderColor: 'brand.primary' }}
           />
         </FormControl>
 
@@ -188,6 +196,7 @@ const AddRecipe = () => {
               min={1}
               value={recipe.servings}
               onChange={(value) => setRecipe(prev => ({ ...prev, servings: parseInt(value) }))}
+              bg="white"
             >
               <NumberInputField />
               <NumberInputStepper>
@@ -235,52 +244,30 @@ const AddRecipe = () => {
           isRequired
         />
 
-        {/* Images */}
         <FormControl>
-          <FormLabel>Images</FormLabel>
-          <Input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleImageUpload}
+          <FormLabel color="brand.text">Images</FormLabel>
+          <ImageUpload 
+            images={images}
+            setImages={setImages}
+            userId={user.id}
           />
-          <HStack mt={4} flexWrap="wrap">
-            {recipe.images.map((image, index) => (
-              <Box key={index} position="relative">
-                <Image
-                  src={image.url}
-                  alt={`Recipe image ${index + 1}`}
-                  boxSize="100px"
-                  objectFit="cover"
-                  cursor="pointer"
-                  onClick={() => setRecipe(prev => ({ ...prev, mainImageIndex: index }))}
-                  border={index === recipe.mainImageIndex ? "2px solid blue" : "none"}
-                />
-                <IconButton
-                  icon={<MdDelete />}
-                  size="sm"
-                  position="absolute"
-                  top={0}
-                  right={0}
-                  onClick={() => {
-                    const newImages = recipe.images.filter((_, i) => i !== index);
-                    setRecipe(prev => ({
-                      ...prev,
-                      images: newImages,
-                      mainImageIndex: prev.mainImageIndex === index ? null : prev.mainImageIndex
-                    }));
-                  }}
-                />
-              </Box>
-            ))}
-          </HStack>
         </FormControl>
 
         <Button
           type="submit"
-          colorScheme="brand"
           isLoading={loading}
-          loadingText="Enregistrement..."
+          loadingText="Envoi en cours..."
+          variant="solid"
+          bg="brand.primary"
+          color="white"
+          _hover={{ 
+            bg: 'brand.primaryDark'
+          }}
+          _active={{
+            bg: 'brand.primary',
+            transform: 'scale(0.98)'
+          }}
+          width="full"
         >
           Ajouter la recette
         </Button>

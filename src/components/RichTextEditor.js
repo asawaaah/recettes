@@ -3,6 +3,8 @@ import { Box, FormControl, FormLabel } from '@chakra-ui/react';
 import { Editor } from '@tinymce/tinymce-react';
 import { richEditorStyles } from '../styles/editorStyles';
 
+const TINYMCE_API_KEY = process.env.REACT_APP_TINYMCE_API_KEY; // Remplacez par votre clé API
+
 const RichTextEditor = ({ 
   label, 
   value, 
@@ -12,48 +14,39 @@ const RichTextEditor = ({
 }) => {
   return (
     <FormControl isRequired={isRequired}>
-      {label && <FormLabel>{label}</FormLabel>}
+      {label && (
+        <FormLabel color="brand.text">{label}</FormLabel>
+      )}
       <Box 
         border="1px" 
-        borderColor="gray.200" 
+        borderColor="brand.secondary"
         borderRadius="md"
         _focusWithin={{
-          borderColor: 'brand.accent',
-          boxShadow: `0 0 0 1px var(--chakra-colors-brand-accent)`
+          borderColor: 'brand.primary',
+          boxShadow: 'outline',
         }}
+        overflow="hidden"
       >
         <Editor
-          apiKey="t4i6kc35z9tcpyrgnxobava0pmtiy2o8d4y9cmjnf3m1tirw"
+          apiKey={TINYMCE_API_KEY}
           value={value}
           init={{
             height: 300,
             menubar: false,
-            mobile: {
-              menubar: false,
-              toolbar_mode: 'scrolling',
-              toolbar: [
-                'bold bullist numlist'
-              ]
-            },
             plugins: [
-              'lists',
-              'paste'
+              'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
+              'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+              'insertdatetime', 'media', 'table', 'preview', 'help', 'wordcount'
             ],
-            toolbar: 'bold | bullist numlist',
-            toolbar_mode: 'wrap',
-            statusbar: false,
+            toolbar: 'undo redo | blocks | ' +
+              'bold italic forecolor | alignleft aligncenter ' +
+              'alignright alignjustify | bullist numlist outdent indent | ' +
+              'removeformat | help',
             content_style: richEditorStyles,
-            paste_as_text: true,
-            browser_spellcheck: true,
-            min_height: 200,
-            max_height: 500,
-            autoresize_bottom_margin: 16,
-            placeholder,
             skin: 'oxide',
-            resize: false,
-            lists_indent_on_tab: false,
-            default_link_target: '_blank',
-            lists_list_styles: false,
+            content_css: 'default',
+            body_class: 'mce-content-body',
+            placeholder: placeholder,
           }}
           onEditorChange={onChange}
         />

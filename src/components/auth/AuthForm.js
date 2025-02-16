@@ -23,6 +23,7 @@ import { ViewIcon, ViewOffIcon, CheckIcon, WarningIcon } from '@chakra-ui/icons'
 import { FcGoogle } from 'react-icons/fc';
 import { supabase } from '../../config/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import '../../styles/components/buttons.css';
 
 const AuthForm = () => {
   const [identifier, setIdentifier] = useState('');
@@ -99,6 +100,64 @@ const AuthForm = () => {
     e.preventDefault();
     if (usernameAvailable && username.length >= 3) {
       setRegistrationStep(2);
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      // Si l'identifiant contient un @, c'est un email
+      if (identifier.includes('@')) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: identifier,
+          password
+        });
+        if (error) throw error;
+      } else {
+        // Si c'est un pseudonyme, on utilise une fonction RPC personnalisée
+        const { data, error } = await supabase
+          .rpc('get_email_by_username', { username_param: identifier });
+
+        if (error || !data) {
+          throw new Error("Username not found");
+        }
+
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: data,
+          password
+        });
+        
+        if (authError) throw authError;
+      }
+
+      toast({
+        title: "Successfully logged in!",
+        status: "success",
+        duration: 5000,
+        position: "top",
+        isClosable: true,
+        containerStyle: {
+          maxWidth: '400px'
+        }
+      });
+
+      navigate('/profile');
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+        position: "top",
+        isClosable: true,
+        containerStyle: {
+          maxWidth: '400px'
+        }
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -213,7 +272,7 @@ const AuthForm = () => {
 
   if (!isLogin) {
     return (
-      <Box p={8} maxW="400px" mx="auto">
+      <Box p={8} maxW="400px" mx="auto" bg="white" borderRadius="lg" boxShadow="md" className="fade-in" mt={8}>
         <VStack spacing={6}>
           <Progress 
             value={registrationStep === 1 ? 33 : 66} 
@@ -375,22 +434,22 @@ const AuthForm = () => {
   }
 
   return (
-    <Box p={8} maxW="400px" mx="auto">
-      <VStack spacing={6} as="form" onSubmit={handleEmailAuth}>
-        {error && (
-          <Alert status="error">
-            <AlertIcon />
-            {error}
-          </Alert>
-        )}
-
+    <Box 
+      p={8} 
+      maxW="400px" 
+      mx="auto" 
+      bg="white" 
+      borderRadius="lg" 
+      boxShadow="md"
+      mt={8}
+    >
+      <VStack spacing={6} as="form" onSubmit={handleLogin}>
         <FormControl isRequired>
-          <FormLabel>{isLogin ? "Email or Username" : "Email"}</FormLabel>
+          <FormLabel>Email ou Pseudonyme</FormLabel>
           <Input
-            type={isLogin ? "text" : "email"}
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder={isLogin ? "Your email or username" : "Your email"}
+            placeholder="Entrez votre email ou pseudonyme"
           />
         </FormControl>
 
@@ -429,29 +488,28 @@ const AuthForm = () => {
 
         <Button
           type="submit"
-          colorScheme="brand"
-          bg="brand.primary"
-          w="full"
+          variant="solid"
+          width="full"
+          className="custom-button-animation"
           isLoading={loading}
         >
-          {isLogin ? "Sign In" : "Sign Up"}
+          {isLogin ? "Se connecter" : "S'inscrire"}
         </Button>
 
-        <HStack w="full">
+        <HStack w="100%">
           <Divider />
-          <Text fontSize="sm" whiteSpace="nowrap" color="gray.500">
-            or
-          </Text>
+          <Text color="gray.500">ou</Text>
           <Divider />
         </HStack>
 
         <Button
-          w="full"
+          width="full"
           variant="outline"
           leftIcon={<Icon as={FcGoogle} />}
           onClick={handleGoogleAuth}
+          className="custom-button-animation"
         >
-          Continue with Google
+          Continuer avec Google
         </Button>
 
         <Text>

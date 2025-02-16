@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Box } from '@chakra-ui/react';
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
 import Products from './pages/Products';
@@ -35,44 +36,56 @@ function App() {
   const { loading } = useAuth();
 
   if (loading) {
-    return <div>Loading app...</div>;
+    return (
+      <Box 
+        height="100vh" 
+        width="100vw" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+      >
+        Loading app...
+      </Box>
+    );
   }
 
   return (
     <ChakraProvider theme={theme}>
       <Router>
         <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/request-password-reset" element={<RequestPasswordReset />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route 
-              path="/auth" 
-              element={
-                <AuthRoute>
-                  <AuthForm />
-                </AuthRoute>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/add-recipe" 
-              element={
-                <ProtectedRoute>
-                  <AddRecipe />
-                </ProtectedRoute>
-              } 
-            />
-          </Routes>
+          <Box width="100%" maxWidth="1200px" mx="auto">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/request-password-reset" element={<RequestPasswordReset />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route 
+                path="/login" 
+                element={
+                  <AuthRoute>
+                    <AuthForm />
+                  </AuthRoute>
+                } 
+              />
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/add-recipe" 
+                element={
+                  <ProtectedRoute>
+                    <AddRecipe />
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </Box>
         </Layout>
       </Router>
     </ChakraProvider>

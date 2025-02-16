@@ -1,0 +1,8 @@
+/* Styles spécifiques aux boutons qui ne peuvent pas être gérés par Chakra UI */
+.custom-button-animation {
+  transition: transform 0.2s ease;
+}
+
+.custom-button-animation:active {
+  transform: scale(0.98);
+} 

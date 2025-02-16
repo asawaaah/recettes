@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Button, Text, Heading, VStack, HStack } from '@chakra-ui/react';
 import SEO from '../components/common/SEO';
+import DurationPicker from '../components/DurationPicker';
 
-function Home() {
+const Home = () => {
+  const [duration, setDuration] = useState(0);
+
   return (
     <>
       <SEO 
@@ -52,10 +55,17 @@ function Home() {
           <Box p={4} bg="brand.success" borderRadius="md" color="white">
             <Text>Message de succès</Text>
           </Box>
+
+          <DurationPicker
+            label="Temps de préparation"
+            value={duration}
+            onChange={setDuration}
+            isRequired={false}
+          />
         </VStack>
       </Box>
     </>
   );
-}
+};
 
 export default Home; 

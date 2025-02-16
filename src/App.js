@@ -11,6 +11,7 @@ import { useAuth } from './context/AuthContext';
 import { ChakraProvider } from '@chakra-ui/react';
 import theme from './theme';
 import RequestPasswordReset from './components/auth/RequestPasswordReset';
+import AddRecipe from './pages/AddRecipe';
 
 // Composant pour protéger les routes
 const ProtectedRoute = ({ children }) => {
@@ -60,6 +61,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/add-recipe" 
+              element={
+                <ProtectedRoute>
+                  <AddRecipe />
                 </ProtectedRoute>
               } 
             />

@@ -86,15 +86,25 @@ const Profile = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
-        // Un utilisateur a un mot de passe si c'est marqué dans ses métadonnées
-        const hasDefinedPassword = user.user_metadata?.has_password === true;
+        // Vérifie si l'utilisateur a un mot de passe de plusieurs façons
+        const hasPasswordInMetadata = user.user_metadata?.has_password === true;
+        const isEmailUser = user.identities?.some(identity => identity.provider === 'email');
+        const hasGoogleWithPassword = user.app_metadata?.provider === 'google' && user.user_metadata?.has_password === true;
 
-        console.log('Password status:', {
-          user_metadata: user.user_metadata,
-          hasDefinedPassword
-        });
+        // Définit hasPassword si l'une des conditions est vraie
+        const finalHasPassword = hasPasswordInMetadata || isEmailUser || hasGoogleWithPassword;
 
-        setHasPassword(hasDefinedPassword);
+        // Met à jour les métadonnées UNIQUEMENT si nécessaire
+        if (!hasPasswordInMetadata && finalHasPassword && user.app_metadata?.provider === 'google') {
+          const { error: updateError } = await supabase.auth.updateUser({
+            data: { has_password: true }
+          });
+          if (updateError) {
+            console.error('Error updating user metadata:', updateError);
+          }
+        }
+
+        setHasPassword(finalHasPassword);
       } catch (error) {
         console.error('Erreur lors de la vérification du mot de passe:', error);
       }

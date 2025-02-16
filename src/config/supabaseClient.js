@@ -1,10 +1,25 @@
 import { createClient } from '@supabase/supabase-js'
 
-if (!process.env.REACT_APP_SUPABASE_URL || !process.env.REACT_APP_SUPABASE_ANON_KEY) {
-  console.error('Missing Supabase environment variables');
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(
-  process.env.REACT_APP_SUPABASE_URL,
-  process.env.REACT_APP_SUPABASE_ANON_KEY
-) 
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'  // Recommandé pour les applications web
+  }
+});
+
+// Vérification de la configuration
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Supabase auth event:', event);
+  if (session) {
+    console.log('User is authenticated');
+  }
+}); 

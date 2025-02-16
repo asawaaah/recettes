@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import Contact from './pages/Contact';
 import AuthForm from './components/auth/AuthForm';
+import AuthCallback from './components/auth/AuthCallback';
 import Profile from './pages/Profile';
 import { useAuth } from './context/AuthContext';
 
@@ -47,6 +48,10 @@ function App() {
                 <AuthForm />
               </AuthRoute>
             } 
+          />
+          <Route 
+            path="/auth/callback" 
+            element={<AuthCallback />} 
           />
           <Route 
             path="/profile" 

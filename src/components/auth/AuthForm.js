@@ -11,39 +11,62 @@ import {
   Divider,
   HStack,
   Icon,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
 import { FcGoogle } from 'react-icons/fc';
 import { supabase } from '../../config/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 const AuthForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
   const toast = useToast();
+  const navigate = useNavigate();
 
   const handleEmailAuth = async (e) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
+
     try {
-      const { error } = isLogin 
+      const { data, error } = isLogin 
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+        : await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback`
+            }
+          });
 
       if (error) throw error;
+
+      if (!isLogin && data.user?.identities?.length === 0) {
+        toast({
+          title: "Email déjà utilisé",
+          description: "Cet email est déjà associé à un compte.",
+          status: "error",
+          duration: 5000,
+        });
+        return;
+      }
       
       toast({
-        title: isLogin ? "Connexion réussie!" : "Inscription réussie!",
+        title: isLogin ? "Connexion réussie!" : "Vérifiez votre email!",
+        description: isLogin ? "Bienvenue!" : "Un lien de confirmation vous a été envoyé.",
         status: "success",
-        duration: 3000,
+        duration: 5000,
       });
+
+      if (isLogin) {
+        navigate('/profile');
+      }
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: error.message,
-        status: "error",
-        duration: 3000,
-      });
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -51,16 +74,29 @@ const AuthForm = () => {
 
   const handleGoogleAuth = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('Starting Google auth...');
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
       });
-      if (error) throw error;
+
+      console.log('Auth response:', { data, error });
+
+      if (error) {
+        console.error('Google auth error:', error);
+        throw error;
+      }
+
+      console.log('Google auth success:', data);
     } catch (error) {
+      console.error('Auth error:', error);
       toast({
-        title: "Erreur",
+        title: "Erreur d'authentification",
         description: error.message,
         status: "error",
-        duration: 3000,
+        duration: 5000,
       });
     }
   };
@@ -68,6 +104,13 @@ const AuthForm = () => {
   return (
     <Box p={8} maxW="400px" mx="auto">
       <VStack spacing={4} as="form" onSubmit={handleEmailAuth}>
+        {error && (
+          <Alert status="error">
+            <AlertIcon />
+            {error}
+          </Alert>
+        )}
+
         <FormControl isRequired>
           <FormLabel>Email</FormLabel>
           <Input
@@ -111,6 +154,7 @@ const AuthForm = () => {
           variant="outline"
           leftIcon={<Icon as={FcGoogle} />}
           onClick={handleGoogleAuth}
+          isDisabled={loading}
         >
           Continuer avec Google
         </Button>

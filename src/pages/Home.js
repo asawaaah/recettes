@@ -17,18 +17,29 @@ function Home() {
           
           <HStack spacing={4}>
             <Button 
-              colorScheme="brand"
+              variant="solid"
               bg="brand.primary"
               color="white"
-              _hover={{ bg: 'brand.accent' }}
+              _hover={{ 
+                bg: 'brand.primaryDark'
+              }}
+              _active={{
+                bg: 'brand.primary',
+                transform: 'scale(0.98)'
+              }}
             >
               Bouton Primary
             </Button>
             <Button 
               variant="outline"
+              bg= 'brand.secondary'
               borderColor="brand.secondary"
-              color="brand.text"
-              _hover={{ bg: 'brand.accent', color: 'white' }}
+              color="white"
+              _hover={{ bg: 'brand.background', color: 'brand.secondary' }}
+              _active={{
+                bg: 'brand.primaryDark',
+                transform: 'scale(0.98)'
+              }}
             >
               Bouton Secondary
             </Button>

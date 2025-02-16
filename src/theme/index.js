@@ -61,6 +61,34 @@ const theme = extendTheme({
         },
       },
     },
+    Toast: {
+      baseStyle: {
+        container: {
+          bg: 'white',
+          color: 'brand.text',
+        },
+      },
+      variants: {
+        success: {
+          container: {
+            bg: `whiten('brand.success', 30)`,
+            color: 'white',
+          },
+        },
+        error: {
+          container: {
+            bg: 'brand.error',
+            color: 'white',
+          },
+        },
+        warning: {
+          container: {
+            bg: 'brand.warning',
+            color: 'white',
+          },
+        },
+      },
+    },
   },
 });
 

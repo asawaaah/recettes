@@ -5,9 +5,12 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import Contact from './pages/Contact';
 import AuthForm from './components/auth/AuthForm';
-import AuthCallback from './components/auth/AuthCallback';
+import ResetPassword from './components/auth/ResetPassword';
 import Profile from './pages/Profile';
 import { useAuth } from './context/AuthContext';
+import { ChakraProvider } from '@chakra-ui/react';
+import theme from './theme';
+import RequestPasswordReset from './components/auth/RequestPasswordReset';
 
 // Composant pour protéger les routes
 const ProtectedRoute = ({ children }) => {
@@ -35,38 +38,35 @@ function App() {
   }
 
   return (
-    <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route 
-            path="/products" 
-            element={<Products />}
-          />
-          <Route path="/contact" element={<Contact />} />
-          <Route 
-            path="/auth" 
-            element={
-              <AuthRoute>
-                <AuthForm />
-              </AuthRoute>
-            } 
-          />
-          <Route 
-            path="/auth/callback" 
-            element={<AuthCallback />} 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-        </Routes>
-      </Layout>
-    </Router>
+    <ChakraProvider theme={theme}>
+      <Router>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/request-password-reset" element={<RequestPasswordReset />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route 
+              path="/auth" 
+              element={
+                <AuthRoute>
+                  <AuthForm />
+                </AuthRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </Layout>
+      </Router>
+    </ChakraProvider>
   );
 }
 

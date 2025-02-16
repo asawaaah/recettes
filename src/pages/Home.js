@@ -1,10 +1,10 @@
-import React, { Fragment } from 'react';
+import React from 'react';
 import { Box, Button, Text, Heading, VStack, HStack } from '@chakra-ui/react';
 import SEO from '../components/common/SEO';
 
-function Home(): JSX.Element {
+function Home() {
   return (
-    <Fragment>
+    <>
       <SEO 
         title="Accueil"
         description="Découvrez nos meilleures recettes de cuisine"
@@ -54,7 +54,7 @@ function Home(): JSX.Element {
           </Box>
         </VStack>
       </Box>
-    </Fragment>
+    </>
   );
 }
 

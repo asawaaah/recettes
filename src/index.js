@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ChakraProvider } from '@chakra-ui/react';
 import { HelmetProvider } from 'react-helmet-async';
+import { AuthProvider } from './context/AuthContext';
 import theme from './theme/index';
 import './index.css';
 import App from './App';
@@ -12,7 +13,9 @@ root.render(
   <React.StrictMode>
     <HelmetProvider>
       <ChakraProvider theme={theme}>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </ChakraProvider>
     </HelmetProvider>
   </React.StrictMode>

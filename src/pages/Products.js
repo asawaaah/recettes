@@ -2,6 +2,8 @@ import React from 'react';
 import { SimpleGrid, Box, Heading } from '@chakra-ui/react';
 import Card from '../components/common/Card';
 import SEO from '../components/common/SEO';
+import { useAuth } from '../context/AuthContext';
+import LockedContent from '../components/blocks/LockedContent';
 
 const productsData = [
   {
@@ -24,7 +26,13 @@ const productsData = [
   }
 ];
 
-function Products() {
+const Products = () => {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <LockedContent />;
+  }
+
   return (
     <>
       <SEO 
@@ -44,6 +52,6 @@ function Products() {
       </Box>
     </>
   );
-}
+};
 
 export default Products; 

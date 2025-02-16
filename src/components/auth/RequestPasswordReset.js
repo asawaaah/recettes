@@ -73,7 +73,7 @@ const RequestPasswordReset = () => {
   };
 
   return (
-    <Box p={8} maxW="400px" mx="auto">
+    <Box p={8} maxW={{ base: "400px", md: "600px" }} mx="auto">
       <VStack spacing={6} as="form" onSubmit={handlePasswordResetRequest}>
         <Heading size="lg" color="brand.text">
           Réinitialiser le mot de passe
@@ -86,7 +86,7 @@ const RequestPasswordReset = () => {
           </Alert>
         )}
 
-        <Text textAlign="center" color="gray.600">
+        <Text textAlign="center" color="gray.600" maxW="500px">
           Entrez votre email ou votre nom d'utilisateur pour recevoir un lien de réinitialisation
         </Text>
 

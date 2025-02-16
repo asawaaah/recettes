@@ -1,6 +1,7 @@
 import React from 'react';
 import { SimpleGrid, Box, Heading } from '@chakra-ui/react';
 import Card from '../components/common/Card';
+import SEO from '../components/common/SEO';
 
 const productsData = [
   {
@@ -25,16 +26,23 @@ const productsData = [
 
 function Products() {
   return (
-    <Box py={8}>
-      <Heading mb={8} textAlign="center" color="brand.text">
-        Our Products
-      </Heading>
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={10}>
-        {productsData.map((product, index) => (
-          <Card key={index} {...product} />
-        ))}
-      </SimpleGrid>
-    </Box>
+    <>
+      <SEO 
+        title="Nos Produits"
+        description="Explorez notre sélection de produits de qualité"
+        keywords="produits, cuisine, qualité, shopping"
+      />
+      <Box py={8}>
+        <Heading mb={8} textAlign="center" color="brand.text">
+          Our Products
+        </Heading>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={10}>
+          {productsData.map((product, index) => (
+            <Card key={index} {...product} />
+          ))}
+        </SimpleGrid>
+      </Box>
+    </>
   );
 }
 

@@ -16,7 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { BsThreeDotsVertical, BsPencil, BsTrash } from 'react-icons/bs';
 
-const RecipeDetailDesktop = ({ recipe, isOwner, slug, onDeleteClick, navigate }) => (
+const RecipeDetailDesktop = ({ recipe, isOwner, recipeId, onDeleteClick, navigate }) => (
   <VStack spacing={8} align="stretch">
     <Flex justify="space-between" align="center">
       <Heading size="xl" color="brand.text">
@@ -33,7 +33,7 @@ const RecipeDetailDesktop = ({ recipe, isOwner, slug, onDeleteClick, navigate })
           <MenuList>
             <MenuItem 
               icon={<BsPencil />} 
-              onClick={() => navigate(`/recipe/edit/${slug}`)}
+              onClick={() => navigate(`/recipe/edit/${recipeId}`)}
             >
               Modifier
             </MenuItem>
@@ -49,7 +49,7 @@ const RecipeDetailDesktop = ({ recipe, isOwner, slug, onDeleteClick, navigate })
       )}
     </Flex>
 
-    {recipe.recipe_images && recipe.recipe_images.length > 0 && (
+    {recipe.recipe_images?.length > 0 && (
       <Box position="relative" width="100%" height="500px" borderRadius="xl" overflow="hidden">
         <Image
           src={recipe.recipe_images[0].image_url}
@@ -57,6 +57,8 @@ const RecipeDetailDesktop = ({ recipe, isOwner, slug, onDeleteClick, navigate })
           width="100%"
           height="100%"
           objectFit="cover"
+          loading="eager"
+          crossOrigin="anonymous"
         />
       </Box>
     )}

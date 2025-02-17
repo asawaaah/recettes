@@ -15,17 +15,15 @@ import {
   TabList,
   TabPanels,
   Tab,
-  TabPanel
+  TabPanel,
+  Spinner
 } from '@chakra-ui/react';
 import { BsThreeDotsVertical, BsPencil, BsTrash } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
 
-const RecipeDetailMobile = ({ recipe, isOwner, recipeId }) => {
-  const navigate = useNavigate();
-  
+const RecipeDetailMobile = ({ recipe, isOwner, recipeId, onDeleteClick, navigate }) => {
   return (
     <Box position="relative">
-      {/* Section Image avec overlay - Sans padding */}
       {recipe.recipe_images?.length > 0 && (
         <Box 
           position="relative" 
@@ -43,16 +41,16 @@ const RecipeDetailMobile = ({ recipe, isOwner, recipeId }) => {
             height="100%"
             objectFit="cover"
             objectPosition="center 60%"
+            loading="eager"
+            crossOrigin="anonymous"
           />
           
-          {/* Overlay dégradé */}
           <Box
             position="absolute"
             inset="0"
             background="linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)"
           />
 
-          {/* Menu Options (3 points) - Maintenant en bas à droite */}
           {isOwner && (
             <Box position="absolute" bottom={6} right={6} zIndex={2}>
               <Menu>
@@ -67,14 +65,11 @@ const RecipeDetailMobile = ({ recipe, isOwner, recipeId }) => {
                 <MenuList>
                   <MenuItem 
                     icon={<BsPencil />} 
-                    onClick={() => {
-                      console.log('Recipe ID for edit:', recipe.id);
-                      navigate(`/recipe/edit/${recipe.id}`);
-                    }}
+                    onClick={() => navigate(`/recipe/edit/${recipeId}`)}
                   >
                     Modifier
                   </MenuItem>
-                  <MenuItem icon={<BsTrash />}>
+                  <MenuItem icon={<BsTrash />} onClick={onDeleteClick}>
                     Supprimer
                   </MenuItem>
                 </MenuList>
@@ -82,7 +77,6 @@ const RecipeDetailMobile = ({ recipe, isOwner, recipeId }) => {
             </Box>
           )}
 
-          {/* Titre et sous-titre */}
           <VStack
             position="absolute"
             bottom={0}
@@ -102,7 +96,6 @@ const RecipeDetailMobile = ({ recipe, isOwner, recipeId }) => {
         </Box>
       )}
 
-      {/* Contenu avec padding */}
       <Box px={4} py={6}>
         <Flex justify="space-between" mb={6}>
           <Flex align="center" gap={2}>

@@ -56,17 +56,12 @@ const RecipeDetail = () => {
   useEffect(() => {
     const fetchRecipe = async () => {
       try {
-        // Extraire l'ID de la recette du slug en utilisant une regex pour trouver l'UUID
         const uuidRegex = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
         const match = slug.match(uuidRegex);
         
-        if (!match) {
-          throw new Error('ID de recette invalide');
-        }
-
+        if (!match) throw new Error('ID de recette invalide');
         const recipeId = match[0];
 
-        // Première requête pour obtenir la recette et ses images
         const { data: recipe, error: recipeError } = await supabase
           .from('recipes')
           .select(`
@@ -81,12 +76,8 @@ const RecipeDetail = () => {
           .single();
 
         if (recipeError) throw recipeError;
-        
-        if (!recipe) {
-          throw new Error('Recette non trouvée');
-        }
+        if (!recipe) throw new Error('Recette non trouvée');
 
-        // Deuxième requête pour obtenir le profil de l'utilisateur
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('id, username')
@@ -95,7 +86,6 @@ const RecipeDetail = () => {
 
         if (profileError) throw profileError;
 
-        // Combiner les données
         setRecipe({
           ...recipe,
           profile
@@ -116,8 +106,10 @@ const RecipeDetail = () => {
       }
     };
 
-    fetchRecipe();
-  }, [slug, navigate, toast]);
+    if (slug && user) {
+      fetchRecipe();
+    }
+  }, [slug, user, navigate, toast]);
 
   const handleDelete = async () => {
     try {
@@ -150,7 +142,7 @@ const RecipeDetail = () => {
   if (loading) {
     return (
       <Center minH="50vh">
-        <Spinner size="xl" color="brand.primary" />
+        <Spinner size="xl" color="brand.primary" thickness="4px" speed="0.65s" />
       </Center>
     );
   }
@@ -166,19 +158,18 @@ const RecipeDetail = () => {
   const layoutProps = {
     recipe,
     isOwner: user?.id === recipe.user_id,
-    slug,
     recipeId: recipe.id,
     onDeleteClick: () => setIsDeleteModalOpen(true),
     navigate
   };
 
   return (
-    <Box 
-      maxW="1200px" 
-      mx="auto" 
-      p={0}
-    >
-      <Suspense fallback={<Spinner />}>
+    <Box maxW="1200px" mx="auto" p={0}>
+      <Suspense fallback={
+        <Center minH="50vh">
+          <Spinner size="xl" color="brand.primary" thickness="4px" speed="0.65s" />
+        </Center>
+      }>
         {isMobile ? (
           <MobileLayout {...layoutProps} />
         ) : (

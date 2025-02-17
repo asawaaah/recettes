@@ -48,10 +48,12 @@ const AuthForm = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/profile`
+          redirectTo: `${window.location.origin}/recipes`
         }
       });
       if (error) throw error;
+      
+      // La redirection sera gérée automatiquement par Supabase OAuth
     } catch (error) {
       toast({
         title: "Error with Google Auth",
@@ -107,15 +109,15 @@ const AuthForm = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Si l'identifiant contient un @, c'est un email
+      let authResult;
+      
       if (identifier.includes('@')) {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        authResult = await supabase.auth.signInWithPassword({
           email: identifier,
           password
         });
-        if (error) throw error;
+        if (authResult.error) throw authResult.error;
       } else {
-        // Si c'est un pseudonyme, on utilise une fonction RPC personnalisée
         const { data, error } = await supabase
           .rpc('get_email_by_username', { username_param: identifier });
 
@@ -123,12 +125,12 @@ const AuthForm = () => {
           throw new Error("Username not found");
         }
 
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        authResult = await supabase.auth.signInWithPassword({
           email: data,
           password
         });
         
-        if (authError) throw authError;
+        if (authResult.error) throw authResult.error;
       }
 
       toast({
@@ -142,7 +144,8 @@ const AuthForm = () => {
         }
       });
 
-      navigate('/profile');
+      navigate('/recipes');
+      
     } catch (error) {
       console.error('Auth error:', error);
       toast({
@@ -202,7 +205,7 @@ const AuthForm = () => {
           }
         });
 
-        navigate('/profile');
+        navigate('/recipes');
       } else {
         if (!identifier.includes('@')) {
           throw new Error("Please use a valid email address");

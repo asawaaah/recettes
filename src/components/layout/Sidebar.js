@@ -13,7 +13,7 @@ import {
   useToast
 } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { FaHome, FaBox, FaEnvelope, FaUserCircle, FaPlus, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaBox, FaEnvelope, FaUserCircle, FaPlus, FaSignOutAlt, FaUtensils } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../config/supabaseClient';
 
@@ -76,14 +76,17 @@ const Sidebar = ({ isOpen, onClose }) => {
             <MenuItem to="/" icon={FaHome} onClick={handleClick}>
               Accueil
             </MenuItem>
+            <MenuItem to="/recipes" icon={FaUtensils} onClick={handleClick}>
+              Mes Recettes
+            </MenuItem>
+            <MenuItem to="/add-recipe" icon={FaPlus} onClick={handleClick}>
+              Ajouter une recette
+            </MenuItem>
             <MenuItem to="/products" icon={FaBox} onClick={handleClick}>
               Produits
             </MenuItem>
             <MenuItem to="/contact" icon={FaEnvelope} onClick={handleClick}>
               Contact
-            </MenuItem>
-            <MenuItem to="/add-recipe" icon={FaPlus} onClick={handleClick}>
-              Ajouter une recette
             </MenuItem>
           </VStack>
 

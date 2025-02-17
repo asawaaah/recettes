@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   VStack,
@@ -14,22 +15,24 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  Center,
+  Spinner,
 } from '@chakra-ui/react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../config/supabaseClient';
 import DurationPicker from '../components/DurationPicker';
 import RichTextEditor from '../components/RichTextEditor';
 import ImageUpload from '../components/ImageUpload';
-import '../styles/components/buttons.css';
 import DOMPurify from 'dompurify';
 
-const AddRecipe = () => {
+const EditRecipe = () => {
+  const { slug } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [images, setImages] = useState([]);
+  const [originalRecipe, setOriginalRecipe] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     subtitle: '',
@@ -40,18 +43,13 @@ const AddRecipe = () => {
     instructions: ''
   });
 
-  // Configuration de l'éditeur pour les ingrédients
+  // Configurations des éditeurs (identiques à AddRecipe)
   const ingredientsEditorConfig = {
-    toolbar: [
-      ['bold'],
-      [{ 'list': 'bullet' }],
-      ['clean']
-    ],
+    toolbar: [['bold'], [{ 'list': 'bullet' }], ['clean']],
     formats: ['bold', 'list', 'bullet'],
     placeholder: 'Par exemple:\n• 200g de farine\n• 3 œufs\n• 1 pincée de sel'
   };
 
-  // Configuration de l'éditeur pour les instructions
   const instructionsEditorConfig = {
     toolbar: [
       ['bold', 'italic'],
@@ -59,15 +57,106 @@ const AddRecipe = () => {
       ['clean']
     ],
     formats: ['bold', 'italic', 'list', 'bullet', 'ordered'],
-    placeholder: 'Par exemple:\n1. Préchauffer le four à 180°C\n2. Mélanger les ingrédients secs\n3. Ajouter les œufs un à un'
+    placeholder: 'Par exemple:\n1. Préchauffer le four à 180°C\n2. Mélanger les ingrédients secs'
   };
+
+  useEffect(() => {
+    const fetchRecipe = async () => {
+      try {
+        // Première requête pour obtenir les recettes et leurs images
+        const { data: recipes, error: recipesError } = await supabase
+          .from('recipes')
+          .select(`
+            *,
+            recipe_images (
+              image_url,
+              storage_path,
+              is_main
+            )
+          `);
+
+        if (recipesError) throw recipesError;
+
+        if (recipes) {
+          // Récupérer tous les user_id uniques
+          const userIds = [...new Set(recipes.map(recipe => recipe.user_id))];
+          
+          // Deuxième requête pour obtenir les profils
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .in('id', userIds);
+
+          if (profilesError) throw profilesError;
+
+          // Combiner les données
+          const recipesWithProfiles = recipes.map(recipe => ({
+            ...recipe,
+            profiles: profilesData?.find(profile => profile.id === recipe.user_id)
+          }));
+
+          // Trouver la recette qui correspond au slug
+          const matchingRecipe = recipesWithProfiles.find(recipe => {
+            const recipeSlug = `${createSlug(recipe.title)}-par-${createSlug(recipe.profiles?.username)}`;
+            return recipeSlug === slug;
+          });
+
+          if (!matchingRecipe) {
+            navigate('/404');
+            return;
+          }
+
+          // Vérification du propriétaire
+          if (matchingRecipe.user_id !== user.id) {
+            toast({
+              title: "Accès non autorisé",
+              description: "Vous ne pouvez pas modifier cette recette",
+              status: "error",
+              duration: 3000,
+            });
+            navigate('/recipes');
+            return;
+          }
+
+          setOriginalRecipe(matchingRecipe);
+          setFormData({
+            title: matchingRecipe.title,
+            subtitle: matchingRecipe.subtitle || '',
+            servings: matchingRecipe.servings,
+            prep_time: matchingRecipe.prep_time,
+            cook_time: matchingRecipe.cook_time,
+            ingredients: matchingRecipe.ingredients || '',
+            instructions: matchingRecipe.instructions[0] || ''
+          });
+
+          if (matchingRecipe.recipe_images) {
+            setImages(matchingRecipe.recipe_images.map(img => ({
+              url: img.image_url,
+              path: img.storage_path
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger la recette",
+          status: "error",
+          duration: 3000,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipe();
+  }, [slug, navigate, user.id, toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Nettoyer et structurer le HTML
       const sanitizedIngredientsHtml = DOMPurify.sanitize(formData.ingredients, {
         ALLOWED_TAGS: ['p', 'br', 'ul', 'li', 'strong'],
         ALLOWED_ATTR: []
@@ -79,8 +168,6 @@ const AddRecipe = () => {
       });
 
       const recipeData = {
-        user_id: user.id,
-        title: formData.title,
         subtitle: formData.subtitle,
         servings: formData.servings,
         prep_time: formData.prep_time,
@@ -89,55 +176,44 @@ const AddRecipe = () => {
         instructions: [sanitizedInstructionsHtml]
       };
 
-      console.log('Données à envoyer:', recipeData);
-
-      const { data: recipe, error: recipeError } = await supabase
+      const { error: updateError } = await supabase
         .from('recipes')
-        .insert([recipeData])
-        .select()
-        .single();
+        .update(recipeData)
+        .eq('id', originalRecipe.id);
 
-      if (recipeError) throw recipeError;
+      if (updateError) throw updateError;
 
-      // 2. Si des images ont été uploadées, les associer à la recette
+      // Gérer les images
       if (images.length > 0) {
+        // Supprimer les anciennes images
+        await supabase
+          .from('recipe_images')
+          .delete()
+          .eq('recipe_id', originalRecipe.id);
+
+        // Ajouter les nouvelles images
         const imagePromises = images.map((img, index) => {
           return supabase
             .from('recipe_images')
             .insert({
-              recipe_id: recipe.id,
+              recipe_id: originalRecipe.id,
               image_url: img.url,
               storage_path: img.path,
-              is_main: index === 0 // La première image est l'image principale
+              is_main: index === 0
             });
         });
 
         await Promise.all(imagePromises);
-
-        // 3. Mettre à jour main_image_id dans la recette avec l'ID de la première image
-        const { data: mainImage } = await supabase
-          .from('recipe_images')
-          .select('id')
-          .eq('recipe_id', recipe.id)
-          .eq('is_main', true)
-          .single();
-
-        if (mainImage) {
-          await supabase
-            .from('recipes')
-            .update({ main_image_id: mainImage.id })
-            .eq('id', recipe.id);
-        }
       }
 
       toast({
-        title: "Recette ajoutée avec succès!",
+        title: "Recette mise à jour avec succès!",
         status: "success",
         duration: 3000,
       });
-      navigate('/recipes');
+      navigate(`/recipe/${slug}`);
     } catch (error) {
-      console.error('Erreur détaillée:', error);
+      console.error('Erreur:', error);
       toast({
         title: "Erreur",
         description: error.message,
@@ -149,17 +225,27 @@ const AddRecipe = () => {
     }
   };
 
-  return (
-    <Box p={8} maxW="800px" mx="auto" className="fade-in">
-      <VStack spacing={6} as="form" onSubmit={handleSubmit}>
-        <Heading color="brand.text">Ajouter une nouvelle recette</Heading>
+  if (loading) {
+    return (
+      <Center h="200px">
+        <Spinner size="xl" color="brand.primary" />
+      </Center>
+    );
+  }
 
-        <FormControl isRequired>
+  return (
+    <Box p={8} maxW="800px" mx="auto">
+      <VStack spacing={6} as="form" onSubmit={handleSubmit}>
+        <Heading color="brand.text">Modifier la recette</Heading>
+
+        <FormControl>
           <FormLabel>Titre</FormLabel>
           <Input
             value={formData.title}
-            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            bg="white"
+            isReadOnly
+            bg="gray.100"
+            _hover={{ cursor: 'not-allowed' }}
+            _focus={{ borderColor: 'gray.300' }}
           />
         </FormControl>
 
@@ -231,36 +317,29 @@ const AddRecipe = () => {
         <Button
           type="submit"
           isLoading={loading}
-          loadingText="Envoi en cours..."
+          loadingText="Mise à jour..."
+          colorScheme="blue"
+          width="full"
           className="custom-button-animation"
           variant="solid"
           bg="brand.primary"
           color="white"
-          width="full"
         >
-          Ajouter la recette
+          Mettre à jour la recette
         </Button>
       </VStack>
     </Box>
   );
 };
 
-// Fonctions utilitaires pour extraire les données structurées
-const extractIngredientsList = (html) => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  const items = doc.querySelectorAll('li');
-  return Array.from(items).map(item => item.textContent.trim());
+const createSlug = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 };
 
-const extractInstructionsList = (html) => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  const items = doc.querySelectorAll('li');
-  return Array.from(items).map(item => ({
-    "@type": "HowToStep",
-    "text": item.textContent.trim()
-  }));
-};
-
-export default AddRecipe; 
+export default EditRecipe; 

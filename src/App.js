@@ -13,6 +13,9 @@ import { ChakraProvider } from '@chakra-ui/react';
 import theme from './theme';
 import RequestPasswordReset from './components/auth/RequestPasswordReset';
 import AddRecipe from './pages/AddRecipe';
+import Recipes from './pages/Recipes';
+import RecipeDetail from './pages/RecipeDetail';
+import EditRecipe from './pages/EditRecipe';
 
 // Composant pour protéger les routes
 const ProtectedRoute = ({ children }) => {
@@ -27,7 +30,7 @@ const ProtectedRoute = ({ children }) => {
 const AuthRoute = ({ children }) => {
   const { user } = useAuth();
   if (user) {
-    return <Navigate to="/profile" />;
+    return <Navigate to="/recipes" />;
   }
   return children;
 };
@@ -84,6 +87,9 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+              <Route path="/recipes" element={<Recipes />} />
+              <Route path="/recipe/edit/:slug" element={<EditRecipe />} />
+              <Route path="/recipe/:slug" element={<RecipeDetail />} />
             </Routes>
           </Box>
         </Layout>

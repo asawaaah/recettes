@@ -26,7 +26,7 @@ const LockedContent = () => {
           colorScheme="brand"
           bg="brand.primary"
           size="lg"
-          onClick={() => navigate('/auth')}
+          onClick={() => navigate('/login')}
         >
           Se connecter
         </Button>

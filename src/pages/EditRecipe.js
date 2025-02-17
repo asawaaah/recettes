@@ -17,6 +17,12 @@ import {
   NumberDecrementStepper,
   Center,
   Spinner,
+  Flex,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
 } from '@chakra-ui/react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../config/supabaseClient';
@@ -24,13 +30,22 @@ import DurationPicker from '../components/DurationPicker';
 import RichTextEditor from '../components/RichTextEditor';
 import ImageUpload from '../components/ImageUpload';
 import DOMPurify from 'dompurify';
+import { 
+  BsThreeDotsVertical, 
+  BsPencil, 
+  BsTrash, 
+  BsArrowLeft,
+  BsSave,
+  BsImage,
+  BsX
+} from 'react-icons/bs';
 
 const EditRecipe = () => {
-  const { slug } = useParams();
-  const { user } = useAuth();
+  const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const toast = useToast();
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [images, setImages] = useState([]);
   const [originalRecipe, setOriginalRecipe] = useState(null);
   const [formData, setFormData] = useState({
@@ -42,6 +57,10 @@ const EditRecipe = () => {
     ingredients: '',
     instructions: ''
   });
+
+  console.log('Current URL:', window.location.pathname);
+  console.log('EditRecipe mounted, id:', id);
+  console.log('Current user:', user);
 
   // Configurations des éditeurs (identiques à AddRecipe)
   const ingredientsEditorConfig = {
@@ -62,99 +81,100 @@ const EditRecipe = () => {
 
   useEffect(() => {
     const fetchRecipe = async () => {
+      setIsLoading(true);
       try {
-        // Première requête pour obtenir les recettes et leurs images
-        const { data: recipes, error: recipesError } = await supabase
+        const urlId = window.location.pathname.split('/').pop();
+        const recipeId = id || urlId;
+
+        console.log('Using recipe ID:', recipeId);
+
+        if (!recipeId) {
+          console.error('No recipe ID provided');
+          navigate('/');
+          return;
+        }
+
+        if (!user) {
+          console.error('No user authenticated');
+          navigate('/');
+          return;
+        }
+
+        console.log('Fetching recipe with id:', recipeId);
+
+        const { data: recipe, error } = await supabase
           .from('recipes')
           .select(`
             *,
             recipe_images (
+              id,
               image_url,
               storage_path,
               is_main
             )
-          `);
+          `)
+          .eq('id', recipeId)
+          .single();
 
-        if (recipesError) throw recipesError;
+        console.log('Supabase response:', { recipe, error });
 
-        if (recipes) {
-          // Récupérer tous les user_id uniques
-          const userIds = [...new Set(recipes.map(recipe => recipe.user_id))];
-          
-          // Deuxième requête pour obtenir les profils
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, username')
-            .in('id', userIds);
-
-          if (profilesError) throw profilesError;
-
-          // Combiner les données
-          const recipesWithProfiles = recipes.map(recipe => ({
-            ...recipe,
-            profiles: profilesData?.find(profile => profile.id === recipe.user_id)
-          }));
-
-          // Trouver la recette qui correspond au slug
-          const matchingRecipe = recipesWithProfiles.find(recipe => {
-            const recipeSlug = `${createSlug(recipe.title)}-par-${createSlug(recipe.profiles?.username)}`;
-            return recipeSlug === slug;
-          });
-
-          if (!matchingRecipe) {
-            navigate('/404');
-            return;
-          }
-
-          // Vérification du propriétaire
-          if (matchingRecipe.user_id !== user.id) {
-            toast({
-              title: "Accès non autorisé",
-              description: "Vous ne pouvez pas modifier cette recette",
-              status: "error",
-              duration: 3000,
-            });
-            navigate('/recipes');
-            return;
-          }
-
-          setOriginalRecipe(matchingRecipe);
-          setFormData({
-            title: matchingRecipe.title,
-            subtitle: matchingRecipe.subtitle || '',
-            servings: matchingRecipe.servings,
-            prep_time: matchingRecipe.prep_time,
-            cook_time: matchingRecipe.cook_time,
-            ingredients: matchingRecipe.ingredients || '',
-            instructions: matchingRecipe.instructions[0] || ''
-          });
-
-          if (matchingRecipe.recipe_images) {
-            setImages(matchingRecipe.recipe_images.map(img => ({
-              url: img.image_url,
-              path: img.storage_path
-            })));
-          }
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
         }
+
+        if (!recipe) {
+          console.log('No recipe found');
+          navigate('/');
+          return;
+        }
+
+        console.log('Recipe found:', recipe);
+
+        if (recipe.user_id !== user.id) {
+          console.log('User not authorized');
+          navigate('/');
+          return;
+        }
+
+        setOriginalRecipe(recipe);
+        setFormData({
+          title: recipe.title || '',
+          subtitle: recipe.subtitle || '',
+          servings: recipe.servings || 1,
+          prep_time: recipe.prep_time || 0,
+          cook_time: recipe.cook_time || 0,
+          ingredients: recipe.ingredients || '',
+          instructions: recipe.instructions || ''
+        });
+        
+        if (recipe.recipe_images && recipe.recipe_images.length > 0) {
+          const formattedImages = recipe.recipe_images.map(img => ({
+            url: img.image_url,
+            path: img.storage_path
+          }));
+          setImages(formattedImages);
+        }
+
       } catch (error) {
-        console.error('Erreur:', error);
+        console.error('Error fetching recipe:', error);
         toast({
           title: "Erreur",
           description: "Impossible de charger la recette",
           status: "error",
-          duration: 3000,
         });
+        navigate('/');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchRecipe();
-  }, [slug, navigate, user.id, toast]);
+  }, [id, user, navigate, toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
 
     try {
       const sanitizedIngredientsHtml = DOMPurify.sanitize(formData.ingredients, {
@@ -211,7 +231,7 @@ const EditRecipe = () => {
         status: "success",
         duration: 3000,
       });
-      navigate(`/recipe/${slug}`);
+      navigate(`/recipe/${id}`);
     } catch (error) {
       console.error('Erreur:', error);
       toast({
@@ -221,14 +241,14 @@ const EditRecipe = () => {
         duration: 3000,
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <Center h="200px">
-        <Spinner size="xl" color="brand.primary" />
+      <Center h="100vh">
+        <Spinner size="xl" />
       </Center>
     );
   }
@@ -236,7 +256,26 @@ const EditRecipe = () => {
   return (
     <Box p={8} maxW="800px" mx="auto">
       <VStack spacing={6} as="form" onSubmit={handleSubmit}>
-        <Heading color="brand.text">Modifier la recette</Heading>
+        <Flex w="100%" justify="space-between" align="center">
+          <IconButton
+            icon={<BsArrowLeft />}
+            onClick={() => navigate(-1)}
+            variant="ghost"
+            aria-label="Retour"
+          />
+          <Heading color="brand.text">Modifier la recette</Heading>
+          <IconButton
+            type="submit"
+            icon={<BsSave />}
+            isLoading={isLoading}
+            loadingText="Mise à jour..."
+            colorScheme="blue"
+            variant="solid"
+            bg="brand.primary"
+            color="white"
+            aria-label="Sauvegarder"
+          />
+        </Flex>
 
         <FormControl>
           <FormLabel>Titre</FormLabel>
@@ -311,22 +350,10 @@ const EditRecipe = () => {
             images={images}
             setImages={setImages}
             userId={user.id}
+            addIcon={<BsImage />}
+            removeIcon={<BsX />}
           />
         </FormControl>
-
-        <Button
-          type="submit"
-          isLoading={loading}
-          loadingText="Mise à jour..."
-          colorScheme="blue"
-          width="full"
-          className="custom-button-animation"
-          variant="solid"
-          bg="brand.primary"
-          color="white"
-        >
-          Mettre à jour la recette
-        </Button>
       </VStack>
     </Box>
   );

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, memo } from 'react';
 import { 
   Box, 
   Text, 
@@ -12,10 +12,63 @@ import {
 import { useDropzone } from 'react-dropzone';
 import { MdDelete, MdStar, MdStarBorder } from 'react-icons/md';
 import { supabase } from '../config/supabaseClient';
+import { BsImage, BsX } from 'react-icons/bs';
 
 const BUCKET_NAME = 'recipe_images';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const TARGET_FORMAT = 'image/webp';
 
-const ImageUpload = ({ images, setImages, userId }) => {
+// Fonction optimisée pour convertir en WebP
+const convertToWebP = async (file) => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  
+  return new Promise((resolve, reject) => {
+    img.onload = () => {
+      // Calcul des dimensions optimales
+      let width = img.width;
+      let height = img.height;
+      const maxDim = 1200;
+
+      if (width > height && width > maxDim) {
+        height *= maxDim / width;
+        width = maxDim;
+      } else if (height > maxDim) {
+        width *= maxDim / height;
+        height = maxDim;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Optimisation de la qualité du rendu
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Conversion en WebP avec qualité optimale
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('Échec de la conversion en WebP'));
+          return;
+        }
+        // Changement de l'extension en .webp
+        const fileName = file.name.replace(/\.[^/.]+$/, '.webp');
+        resolve(new File([blob], fileName, { type: TARGET_FORMAT }));
+      }, TARGET_FORMAT, 0.85); // Qualité 0.85 pour un bon compromis qualité/taille
+    };
+
+    img.onerror = () => {
+      reject(new Error("Erreur lors du chargement de l'image"));
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+const ImageUpload = memo(({ images, setImages, userId, addIcon, removeIcon, accept }) => {
   const toast = useToast();
   const [uploading, setUploading] = useState(false);
 
@@ -23,43 +76,51 @@ const ImageUpload = ({ images, setImages, userId }) => {
     setUploading(true);
     
     for (const file of acceptedFiles) {
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Type de fichier non supporté",
-          description: "Seules les images sont acceptées",
-          status: "error",
-          duration: 3000,
-        });
-        continue;
-      }
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${userId}/${fileName}`;
-
       try {
-        const { error: uploadError } = await supabase.storage
+        if (!ACCEPTED_TYPES.includes(file.type)) {
+          throw new Error('Type de fichier non supporté');
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error('Fichier trop volumineux');
+        }
+
+        // Conversion en WebP
+        const optimizedFile = await convertToWebP(file);
+        
+        const filePath = `${userId}/${Date.now()}-${optimizedFile.name}`;
+        const { data, error } = await supabase.storage
           .from(BUCKET_NAME)
-          .upload(filePath, file);
+          .upload(filePath, optimizedFile, {
+            cacheControl: '31536000', // Cache d'un an
+            contentType: TARGET_FORMAT
+          });
 
-        if (uploadError) throw uploadError;
+        if (error) throw error;
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: urlData } = supabase.storage
           .from(BUCKET_NAME)
           .getPublicUrl(filePath);
 
         setImages(prev => [...prev, {
-          url: publicUrl,
+          url: urlData.publicUrl,
           path: filePath,
-          isMain: prev.length === 0 // Premier upload = image principale
+          isMain: prev.length === 0,
+          format: TARGET_FORMAT
         }]);
 
+        toast({
+          title: "Image optimisée et uploadée",
+          status: "success",
+          duration: 2000,
+        });
       } catch (error) {
         toast({
           title: "Erreur lors de l'upload",
           description: error.message,
           status: "error",
-          duration: 3000,
+          duration: 5000,
+          isClosable: true,
         });
       }
     }
@@ -68,9 +129,8 @@ const ImageUpload = ({ images, setImages, userId }) => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif']
-    }
+    accept: accept,
+    maxSize: MAX_FILE_SIZE
   });
 
   const handleDelete = async (index) => {
@@ -121,18 +181,20 @@ const ImageUpload = ({ images, setImages, userId }) => {
           borderColor: "brand.primary",
           bg: "brand.background"
         }}
-        cursor="pointer"
+        cursor={uploading ? "wait" : "pointer"}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} disabled={uploading} />
         <Center h="100%">
           <VStack spacing={2}>
             <Text color="brand.text" textAlign="center">
-              {isDragActive
-                ? "Déposez les images ici..."
-                : "Glissez-déposez vos images ici, ou cliquez pour sélectionner"}
+              {uploading 
+                ? "Optimisation et upload en cours..."
+                : isDragActive
+                  ? "Déposez les images ici..."
+                  : "Glissez-déposez vos images ici, ou cliquez pour sélectionner"}
             </Text>
             <Text fontSize="sm" color="gray.500">
-              JPG, PNG, GIF acceptés
+              Conversion automatique en WebP pour une meilleure performance
             </Text>
           </VStack>
         </Center>
@@ -173,6 +235,8 @@ const ImageUpload = ({ images, setImages, userId }) => {
       </SimpleGrid>
     </VStack>
   );
-};
+});
+
+ImageUpload.displayName = 'ImageUpload';
 
 export default ImageUpload; 

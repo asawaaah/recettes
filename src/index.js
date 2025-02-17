@@ -1,27 +1,43 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { ChakraProvider } from '@chakra-ui/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './context/AuthContext';
 import theme from './theme';
 import './styles/globals.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+
+// Lazy load App component
+const App = lazy(() => import('./App'));
+
+// Loading fallback
+const LoadingFallback = () => (
+  <div style={{ 
+    height: '100vh', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: theme.colors.brand.background 
+  }}>
+    Chargement...
+  </div>
+);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <HelmetProvider>
-      <ChakraProvider theme={theme}>
-        <AuthProvider>
+  <HelmetProvider>
+    <ChakraProvider theme={theme}>
+      <AuthProvider>
+        <Suspense fallback={<LoadingFallback />}>
           <App />
-        </AuthProvider>
-      </ChakraProvider>
-    </HelmetProvider>
-  </React.StrictMode>
+        </Suspense>
+      </AuthProvider>
+    </ChakraProvider>
+  </HelmetProvider>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+// Charge reportWebVitals uniquement en développement
+if (process.env.NODE_ENV === 'development') {
+  import('./reportWebVitals').then(({ default: reportWebVitals }) => {
+    reportWebVitals(console.log);
+  });
+}

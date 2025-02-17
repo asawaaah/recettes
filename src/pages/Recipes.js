@@ -1,60 +1,95 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, memo, Suspense } from 'react';
 import { 
-  SimpleGrid, 
   Box, 
   Heading, 
-  Spinner, 
-  Center, 
   Text,
   VStack,
   useMediaQuery,
   IconButton,
   Flex,
-  Tooltip
+  Tooltip,
+  SimpleGrid,
+  Image,
+  Center
 } from '@chakra-ui/react';
-import { BsGrid, BsListUl } from 'react-icons/bs';
-import Card from '../components/common/Card';
-import RecipeListItem from '../components/common/RecipeListItem';
+// Import sélectif des icônes
+import { BsGrid3X3GapFill, BsListUl } from 'react-icons/bs';
 import { supabase } from '../config/supabaseClient';
-import { useAuth } from '../context/AuthContext';
-import LockedContent from '../components/blocks/LockedContent';
 
-const Recipes = () => {
-  const [recipes, setRecipes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const { user } = useAuth();
-  const [isMobile] = useMediaQuery('(max-width: 768px)');
-  const [viewMode, setViewMode] = useState(() => {
-    // Par défaut : liste sur mobile, grille sur desktop
-    const savedMode = localStorage.getItem('recipeViewMode');
-    return savedMode || (isMobile ? 'list' : 'grid');
+// Lazy load avec les bons chemins
+const Card = memo(React.lazy(() => 
+  import('../components/common/Card')
+));
+
+const RecipeListItem = memo(React.lazy(() => 
+  import('../components/common/RecipeListItem')
+));
+
+// Composant optimisé pour les images avec loading intelligent
+const RecipeImage = memo(({ image, title, priority = false }) => (
+  <Image
+    src={image.url}
+    alt={title}
+    width="100%"
+    height="200px"
+    objectFit="cover"
+    loading={priority ? "eager" : "lazy"}
+    decoding={priority ? "sync" : "async"}
+    fetchPriority={priority ? "high" : "auto"}
+  />
+));
+
+// Optimisation du skeleton loader
+const CardSkeleton = memo(() => (
+  <Box 
+    borderWidth="1px"
+    borderRadius="lg"
+    overflow="hidden"
+    bg="white"
+    height="350px"
+  >
+    <Box bg="gray.200" height="200px" />
+    <VStack p={4} align="start" spacing={2}>
+      <Box bg="gray.200" height="24px" width="80%" />
+      <Box bg="gray.200" height="20px" width="60%" />
+    </VStack>
+  </Box>
+));
+
+// Fonction utilitaire optimisée pour le slug
+const createSlug = (text, id) => {
+  if (!text) return id;
+  return `${text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')}-${id}`;
+};
+
+// Hook personnalisé pour la gestion des recettes
+const useRecipes = () => {
+  const [state, setState] = useState({
+    recipes: [],
+    loading: true,
+    error: null
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchRecipes();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  // Sauvegarder la préférence d'affichage
-  useEffect(() => {
-    localStorage.setItem('recipeViewMode', viewMode);
-  }, [viewMode]);
-
-  const fetchRecipes = async () => {
+  const fetchRecipes = useCallback(async () => {
     try {
-      setLoading(true);
-      console.log('Fetching recipes...');
-
-      // Première requête pour obtenir les recettes et leurs images
-      const { data: recipesData, error: recipesError } = await supabase
+      // Première requête pour obtenir les recettes avec leurs images
+      const { data: recipes, error: recipesError } = await supabase
         .from('recipes')
         .select(`
-          *,
+          id,
+          title,
+          subtitle,
+          user_id,
+          servings,
+          prep_time,
+          cook_time,
           recipe_images (
+            id,
             image_url,
             is_main
           )
@@ -63,110 +98,120 @@ const Recipes = () => {
 
       if (recipesError) throw recipesError;
 
-      // Si nous avons des recettes, récupérons les profils correspondants
-      if (recipesData && recipesData.length > 0) {
-        // Récupérer tous les user_id uniques
-        const userIds = [...new Set(recipesData.map(recipe => recipe.user_id))];
-        
-        // Deuxième requête pour obtenir les profils
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, username')
-          .in('id', userIds);
+      // Deuxième requête pour obtenir les profils des utilisateurs
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', recipes.map(recipe => recipe.user_id));
 
-        if (profilesError) throw profilesError;
+      if (profilesError) throw profilesError;
 
-        // Combiner les données
-        const combinedData = recipesData.map(recipe => ({
-          ...recipe,
-          profiles: profilesData?.find(profile => profile.id === recipe.user_id)
-        }));
+      // Combiner les données
+      const recipesWithProfiles = recipes.map(recipe => ({
+        ...recipe,
+        slug: `${createSlug(recipe.title)}-${recipe.id}`,
+        profile: profiles.find(profile => profile.id === recipe.user_id)
+      }));
 
-        console.log('Combined data:', combinedData);
-        setRecipes(combinedData);
-      } else {
-        setRecipes([]);
-      }
-    } catch (error) {
-      console.error('Error fetching recipes:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      setState({ 
+        recipes: recipesWithProfiles,
+        loading: false, 
+        error: null 
+      });
+    } catch (err) {
+      console.error('Error fetching recipes:', err);
+      setState(prev => ({ ...prev, loading: false, error: err.message }));
     }
-  };
+  }, []);
 
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'grid' ? 'list' : 'grid');
-  };
+  useEffect(() => {
+    fetchRecipes();
+  }, [fetchRecipes]);
 
-  if (!user) return <LockedContent />;
-  if (loading) return <Center h="200px"><Spinner size="xl" color="brand.primary" /></Center>;
-  if (error) return <Center h="200px"><Text color="red.500">Erreur: {error}</Text></Center>;
+  return state;
+};
+
+// Composant principal optimisé
+const Recipes = () => {
+  const { recipes, loading, error } = useRecipes();
+  const [isGridView, setIsGridView] = useState(() => 
+    localStorage.getItem('recipeViewMode') !== 'list'
+  );
+  const [isMobile] = useMediaQuery('(max-width: 768px)');
+
+  const toggleView = useCallback(() => {
+    setIsGridView(prev => {
+      const newValue = !prev;
+      localStorage.setItem('recipeViewMode', newValue ? 'grid' : 'list');
+      return newValue;
+    });
+  }, []);
+
+  if (error) {
+    return (
+      <Center minH="50vh">
+        <Text color="red.500">Erreur: {error}</Text>
+      </Center>
+    );
+  }
 
   return (
-    <Box p={4} maxW="1200px" mx="auto" className="fade-in">
-      <Flex 
-        justify="space-between" 
-        align="center" 
-        mb={8}
-        direction={{ base: 'column', sm: 'row' }}
-        gap={4}
-      >
-        <Heading 
-          color="brand.text"
-          fontSize={{ base: "2xl", md: "3xl" }}
-        >
-          Mes Recettes ({recipes.length})
-        </Heading>
-
-        <Tooltip 
-          label={viewMode === 'grid' ? 'Voir en liste' : 'Voir en grille'}
-          placement="left"
-        >
+    <Box>
+      <Flex justify="space-between" align="center" mb={6}>
+        <Heading size="lg" color="brand.text">Recettes</Heading>
+        <Tooltip label={isGridView ? "Vue liste" : "Vue grille"}>
           <IconButton
-            icon={viewMode === 'grid' ? <BsListUl /> : <BsGrid />}
-            onClick={toggleViewMode}
+            icon={isGridView ? <BsListUl /> : <BsGrid3X3GapFill />}
+            onClick={toggleView}
             variant="ghost"
-            color="brand.primary"
-            _hover={{ bg: 'brand.background' }}
-            aria-label="Changer le mode d'affichage"
-            size="lg"
+            aria-label="Changer la vue"
           />
         </Tooltip>
       </Flex>
-      
-      {recipes.length === 0 ? (
-        <Center>
-          <Text fontSize="lg" color="gray.600">
-            Aucune recette pour le moment. Commencez par en ajouter une !
-          </Text>
-        </Center>
-      ) : viewMode === 'list' ? (
-        <VStack 
-          spacing={isMobile ? 0 : 4}
-          w="100%"
-          divider={isMobile ? null : <Box h="1px" bg="gray.200" />}
-        >
-          {recipes.map((recipe) => (
-            <RecipeListItem
-              key={recipe.id}
-              {...recipe}
-            />
-          ))}
-        </VStack>
-      ) : (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={10}>
-          {recipes.map((recipe) => (
-            <Card
-              key={recipe.id}
-              {...recipe}
-              profiles={recipe.profiles}
-            />
-          ))}
-        </SimpleGrid>
-      )}
+
+      <SimpleGrid 
+        columns={{ base: 1, md: isGridView ? 2 : 1, lg: isGridView ? 3 : 1 }} 
+        spacing={6}
+      >
+        {loading ? (
+          [...Array(6)].map((_, i) => <CardSkeleton key={i} />)
+        ) : (
+          recipes.map((recipe, index) => {
+            const isAboveTheFold = index < (isGridView ? 6 : 3);
+            return (
+              <Suspense key={recipe.id} fallback={<CardSkeleton />}>
+                {isGridView ? (
+                  <Card 
+                    title={recipe.title}
+                    subtitle={recipe.subtitle}
+                    servings={recipe.servings}
+                    prep_time={recipe.prep_time}
+                    cook_time={recipe.cook_time}
+                    recipe_images={recipe.recipe_images}
+                    profiles={recipe.profiles}
+                    id={recipe.id}
+                    priority={isAboveTheFold}
+                  />
+                ) : (
+                  <RecipeListItem 
+                    title={recipe.title}
+                    subtitle={recipe.subtitle}
+                    servings={recipe.servings}
+                    prep_time={recipe.prep_time}
+                    cook_time={recipe.cook_time}
+                    recipe_images={recipe.recipe_images}
+                    profile={recipe.profile}
+                    id={recipe.id}
+                    priority={isAboveTheFold}
+                  />
+                )}
+              </Suspense>
+            );
+          })
+        )}
+      </SimpleGrid>
     </Box>
   );
 };
 
-export default Recipes; 
+export default memo(Recipes); 

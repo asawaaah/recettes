@@ -2,12 +2,11 @@ import React from 'react';
 import { Box, Image, Text, Heading, HStack, VStack, Flex, useMediaQuery } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 
-const RecipeListItem = ({ title, subtitle, prep_time, cook_time, servings, recipe_images, profiles }) => {
+const RecipeListItem = ({ title, subtitle, prep_time, cook_time, servings, recipe_images, profile, id }) => {
   const navigate = useNavigate();
   const mainImage = recipe_images?.find(img => img.is_main) || recipe_images?.[0];
   const [isMobile] = useMediaQuery('(max-width: 768px)');
 
-  // Même fonction de création de slug que dans Card
   const createSlug = (text) => {
     if (!text) return '';
     return text
@@ -19,7 +18,7 @@ const RecipeListItem = ({ title, subtitle, prep_time, cook_time, servings, recip
   };
 
   const handleClick = () => {
-    const recipeSlug = `${createSlug(title)}-par-${createSlug(profiles?.username || 'anonyme')}`;
+    const recipeSlug = `${createSlug(title)}-${id}`;
     navigate(`/recipe/${recipeSlug}`);
   };
 
@@ -73,8 +72,8 @@ const RecipeListItem = ({ title, subtitle, prep_time, cook_time, servings, recip
               color="brand.secondary"
               mt="auto"
             >
-              <Text>🍽️ {servings}</Text>
-              <Text>⏲️ {prep_time + cook_time} min</Text>
+              {servings && <Text>🍽️ {servings}</Text>}
+              {(prep_time || cook_time) && <Text>⏲️ {prep_time + cook_time} min</Text>}
             </HStack>
           </VStack>
         </Box>

@@ -64,7 +64,7 @@ const ResetPassword = () => {
         duration: 5000,
       });
 
-      navigate('/auth');
+      navigate('/login');
     } catch (error) {
       setError(error.message);
     } finally {

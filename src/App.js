@@ -32,7 +32,7 @@ const LoadingComponent = () => (
 // Composants de protection des routes optimisés
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/auth" replace />;
+  return user ? children : <Navigate to="/login" replace />;
 };
 
 const AuthRoute = ({ children }) => {
@@ -50,7 +50,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/products" element={<Products />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/auth" element={
+              <Route path="/login" element={
                 <AuthRoute>
                   <AuthForm />
                 </AuthRoute>

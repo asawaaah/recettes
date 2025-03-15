@@ -10,7 +10,7 @@ const AuthCallback = () => {
       if (session) {
         navigate('/recipes');
       } else {
-        navigate('/auth');
+        navigate('/login');
       }
     });
   }, [navigate]);

@@ -226,7 +226,7 @@ const AuthForm = () => {
             data: {
               username: username
             },
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            emailRedirectTo: `${window.location.origin}/login/callback`
           }
         });
 

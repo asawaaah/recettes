@@ -56,7 +56,7 @@ const RequestPasswordReset = () => {
         isClosable: true,
       });
 
-      navigate('/auth');
+      navigate('/login');
     } catch (error) {
       setError(error.message);
       toast({
@@ -111,7 +111,7 @@ const RequestPasswordReset = () => {
 
         <Button
           variant="link"
-          onClick={() => navigate('/auth')}
+          onClick={() => navigate('/login')}
         >
           Retour à la connexion
         </Button>
